@@ -165,7 +165,7 @@ void on_ctrl_recv_callback
     for(size_t i = 0; nv[i]; i += 2) {
       if(strcmp(nv[i], ":path") == 0) {
         path = nv[i+1];
-      } else if(strcmp(nv[i], "authorization") == 0) {
+      } else if(strcmp(nv[i], "proxy-authorization") == 0) {
         authorization = nv[i+1];
       }else if(strcmp(nv[i], ":scheme") == 0) {
         scheme = nv[i+1];
@@ -183,11 +183,11 @@ void on_ctrl_recv_callback
       return;
     }
 	const char* re_nv[]={
-		"www-authenticate",
-		"Basic"
+		"Proxy-Authenticate",
+		"Basic realm=\"SPDY Proxy\""		
 	  };
 	if(!authorization || strlen(authorization) <=6 ){	  
-	  upstream->error_reply(downstream,401,re_nv,2);	  
+	  upstream->error_reply(downstream,407,re_nv,2);	  
 	  return;
 	} else {
 		char dstbuf[1024];
@@ -199,6 +199,7 @@ void on_ctrl_recv_callback
 			upstream->rst_stream(downstream, SPDYLAY_INTERNAL_ERROR);
 			return;
 		} else {
+		   //ULOG(ERROR, upstream) <<"authinfo:"<<dstbuf;
 		   char* auth_end=dstbuf+dstlen;
 		   char* name_end=strchr(dstbuf,':');
 		   if(name_end==NULL || name_end+1>=auth_end) {
