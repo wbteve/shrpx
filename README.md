@@ -1,9 +1,9 @@
 shrpx
 =====
 
-shrpx是一个基于SPDY(http://www.chromium.org/spdy/)协议的HTTP Proxy server。它的主要用途是让浏览器可以通过它安全的访问网站。
+shrpx是一个基于SPDY( http://www.chromium.org/spdy/ )协议的HTTP Proxy server。它的主要用途是让浏览器可以通过它安全的访问网站。
 
-Browser <--> shrpx <--> squid <--> https://www.google.com/
+Browser <--> shrpx <--> squid <--> 目标网站。如https://www.google.com/
 
 squid虽然是一个很优秀的代理服务器，但是它尚不支持SPDY协议。shrpx就在client和squid之间充当了协议翻译官的作用。
 
@@ -13,7 +13,8 @@ squid虽然是一个很优秀的代理服务器，但是它尚不支持SPDY协�
 
 
 编译:
-(先别尝试，需要openssl 1.0.1及以上版本。）
+编译前需要：
+gcc >= 4.4、g++ >= 4.4、cmake >= 2.8、openssl >= 1.0.1、libevent2（含ssl） >= 2.0.8 、zlib >=1.2.3
 
 mkdir b1
 
@@ -23,14 +24,16 @@ cmake ..
 
 make
 
+配置文件示例：
+backend=127.0.0.1:3128 #后端(即squid）的IP，端口号
+private-key-file=/home/app/shrpx/private.key #https证书私钥。
+certificate-file=/home/app/shrpx/mycert.pem  #https证书公钥。注意证书中的CN一定要与服务器的域名匹配
+frontend=10.4.1.14:3000 #本机的IP，端口号。
+add-x-forwarded-for=yes #转发给squid的时候加上x-forward-for
+
+
 运行:
-src/shrpx -f 10.4.1.14:3000 -b 10.4.1.30:80 server.key.insecure server.crt 
-
--f后面跟的是本机的IP，端口号。
--b后面是后端(即squid）的IP，端口号
-
-最后两个参数是https的私钥key和https的公钥证书。注意证书中的CN一定要与服务器的域名匹配
-
+./shrpx  --conf shrpx.ini -D
 
 然后运行Chrome:
 
@@ -38,15 +41,7 @@ C:\Users\cm\AppData\Local\Google\Chrome\Application\chrome.exe --proxy-server=ht
 
 
 TODO: 
-<p>身份认证</p>
-SPDY协议支持4种身份认证模式：Basic, Digest, NTLM and Negotiate (SPNEGO).<br/>
-其中Basic和Digest是无状态的。这会导致每个请求多一个Round-trip。于是我下一步的目标是把身份认证方式换成 NTLM 或 SPNEGO。
+计划是去除squid，直连目标网站。
 
-<p>
-关于Basic和Digest认证：<br />
-如果客户端发来的header中不含authorization字段。则服务器给客户端返回401或者407的状态码。并在reply header中加上“www-authenticate = Basic”或“www-authenticate = Digest”<br />
-如果客户端发来的header中含有authorization字段，则它应该具有“authorization = Basic XXX ”这样的形式。<br />
-</p>
-
-downstream: 指向后端的proxy
+downstream: 指向后端的proxy。 目前支持两种downstream，http和spdy。 https肿么办？
 upstream: 指向browser
