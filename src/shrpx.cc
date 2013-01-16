@@ -711,15 +711,6 @@ int main(int argc, char **argv)
     }
   }
 
-  if(argc - optind >= 2) {
-    cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PRIVATE_KEY_FILE,
-                                     argv[optind++]));
-    cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CERTIFICATE_FILE,
-                                     argv[optind++]));
-  } else{
-	 LOG(FATAL) << "need ssl private key and public key";
-	 exit(EXIT_FAILURE);
-  }
 
   for(size_t i = 0, len = cmdcfgs.size(); i < len; ++i) {
     if(parse_config(cmdcfgs[i].first, cmdcfgs[i].second) == -1) {
@@ -738,7 +729,7 @@ int main(int argc, char **argv)
 
   if(!get_config()->private_key_file || !get_config()->cert_file) {
     print_usage(std::cerr);
-    LOG(FATAL) << "Too few arguments";
+    LOG(FATAL) << "need ssl key";
     exit(EXIT_FAILURE);
   }
 
