@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Spdylay - SPDY Library
  *
  * Copyright (c) 2012 Tatsuhiro Tsujikawa
@@ -113,7 +113,7 @@ void upstream_eventcb(bufferevent *bev, short events, void *arg)
 		  // come. So consume input buffer here.
 		  handler->get_upstream()->on_read();
 	  } else {
-		//XXX:没有合适的protocol可以用。关闭连接？
+		//XXX:关闭连接？
 		delete handler;
 		finish = true;
 	  }      

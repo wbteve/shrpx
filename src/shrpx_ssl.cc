@@ -144,6 +144,12 @@ SSL_CTX* create_ssl_context()
                << ERR_error_string(ERR_get_error(), NULL);
     DIE();
   }
+  if(SSL_CTX_use_certificate_chain_file(ssl_ctx,
+                                        get_config()->cert_file) != 1) {
+    LOG(FATAL) << "SSL_CTX_use_certificate_file failed: "
+               << ERR_error_string(ERR_get_error(), NULL);
+    DIE();
+  }
   if(SSL_CTX_check_private_key(ssl_ctx) != 1) {
     LOG(FATAL) << "SSL_CTX_check_private_key failed: "
                << ERR_error_string(ERR_get_error(), NULL);

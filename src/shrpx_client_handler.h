@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Spdylay - SPDY Library
  *
  * Copyright (c) 2012 Tatsuhiro Tsujikawa
@@ -38,9 +38,6 @@ class Upstream;
 class DownstreamConnection;
 class SpdySession;
 
-/**
- * 每个connection对应一个ClientHandler
- */
 class ClientHandler {
 public:
   ClientHandler(bufferevent *bev, int fd, SSL *ssl, const char *ipaddr);
