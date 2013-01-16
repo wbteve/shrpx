@@ -118,12 +118,5 @@ event_base* ListenHandler::get_evbase() const
   return evbase_;
 }
 
-int ListenHandler::create_spdy_session()
-{
-  int rv;
-  spdy_ = new SpdySession(evbase_, ssl_ctx_);
-  rv = spdy_->init_notification();
-  return rv;
-}
 
 } // namespace shrpx

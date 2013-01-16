@@ -231,6 +231,10 @@ void drop_privileges()
 } // namespace
 
 namespace {
+
+/**
+ * 初始化libevent,listen并运行libevent的event loop。
+ */
 int event_loop()
 {
   event_base *evbase = event_base_new();
@@ -309,7 +313,7 @@ void fill_default_config()
   mod_config()->port = 3000;
   mod_config()->private_key_file = 0;
   mod_config()->private_key_passwd = 0;
-  mod_config()->cert_file = 0;
+  
 
   // Read timeout for SPDY upstream connection
   mod_config()->spdy_upstream_read_timeout.tv_sec = 180;
@@ -517,6 +521,9 @@ void print_help(std::ostream& out)
 }
 } // namespace
 
+/**
+ * 分析argv，run my event_loop
+ */
 int main(int argc, char **argv)
 {
   Log::set_severity_level(WARNING);
@@ -525,44 +532,7 @@ int main(int argc, char **argv)
   initPasswd("proxy_pass.txt");
   std::vector<std::pair<const char*, const char*> > cmdcfgs;
   while(1) {
-    int flag;
-    static option long_options[] = {
-      {"daemon", no_argument, 0, 'D' },
-      {"log-level", required_argument, 0, 'L' },
-      {"backend", required_argument, 0, 'b' },
-      {"spdy-max-concurrent-streams", required_argument, 0, 'c' },
-      {"frontend", required_argument, 0, 'f' },
-      {"help", no_argument, 0, 'h' },
-      {"insecure", no_argument, 0, 'k' },
-      {"workers", required_argument, 0, 'n' },
-      {"version", no_argument, 0, 'v' },
-      {"add-x-forwarded-for", no_argument, &flag, 1 },
-      {"frontend-spdy-read-timeout", required_argument, &flag, 2 },
-      {"frontend-read-timeout", required_argument, &flag, 3 },
-      {"frontend-write-timeout", required_argument, &flag, 4 },
-      {"backend-read-timeout", required_argument, &flag, 5 },
-      {"backend-write-timeout", required_argument, &flag, 6 },
-      {"accesslog", no_argument, &flag, 7 },
-      {"backend-keep-alive-timeout", required_argument, &flag, 8 },
-      {"frontend-spdy-window-bits", required_argument, &flag, 9 },
-      {"pid-file", required_argument, &flag, 10 },
-      {"user", required_argument, &flag, 11 },
-      {"conf", required_argument, &flag, 12 },
-      {"syslog", no_argument, &flag, 13 },
-      {"syslog-facility", required_argument, &flag, 14 },
-      {"backlog", required_argument, &flag, 15 },
-      {"ciphers", required_argument, &flag, 16 },
-      {"backend-spdy-window-bits", required_argument, &flag, 18 },
-      {"cacert", required_argument, &flag, 19 },
-      {"backend-ipv4", no_argument, &flag, 20 },
-      {"backend-ipv6", no_argument, &flag, 21 },
-      {"private-key-passwd-file", required_argument, &flag, 22},
-      {"no-via", no_argument, &flag, 23},
-      {0, 0, 0, 0 }
-    };
-    int option_index = 0;
-    int c = getopt_long(argc, argv, "DL:b:c:f:hkn:pv", long_options,
-                        &option_index);
+    int c = getopt(argc, argv, "Dc:hv");
     if(c == -1) {
       break;
     }
@@ -570,137 +540,19 @@ int main(int argc, char **argv)
     case 'D':
       cmdcfgs.push_back(std::make_pair(SHRPX_OPT_DAEMON, "yes"));
       break;
-    case 'L':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_LOG_LEVEL, optarg));
-      break;
-    case 'b':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND, optarg));
-      break;
-    case 'c':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_SPDY_MAX_CONCURRENT_STREAMS,
-                                       optarg));
-      break;
-    case 'f':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND, optarg));
-      break;
     case 'h':
       print_help(std::cout);
       exit(EXIT_SUCCESS);
-    case 'k':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_INSECURE, "yes"));
-      break;
-    case 'n':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_WORKERS, optarg));
-      break;
     case 'v':
       print_version(std::cout);
       exit(EXIT_SUCCESS);
     case '?':
       exit(EXIT_FAILURE);
-    case 0:
-      switch(flag) {
-      case 1:
-        // --add-x-forwarded-for
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_ADD_X_FORWARDED_FOR,
-                                         "yes"));
-        break;
-      case 2:
-        // --frontend-spdy-read-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_SPDY_READ_TIMEOUT,
-                                         optarg));
-        break;
-      case 3:
-        // --frontend-read-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_READ_TIMEOUT,
-                                         optarg));
-        break;
-      case 4:
-        // --frontend-write-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_WRITE_TIMEOUT,
-                                         optarg));
-        break;
-      case 5:
-        // --backend-read-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_READ_TIMEOUT,
-                                         optarg));
-        break;
-      case 6:
-        // --backend-write-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_WRITE_TIMEOUT,
-                                         optarg));
-        break;
-      case 7:
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_ACCESSLOG, "yes"));
-        break;
-      case 8:
-        // --backend-keep-alive-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_KEEP_ALIVE_TIMEOUT,
-                                         optarg));
-        break;
-      case 9:
-        // --frontend-spdy-window-bits
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_SPDY_WINDOW_BITS,
-                                         optarg));
-        break;
-      case 10:
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PID_FILE, optarg));
-        break;
-      case 11:
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_USER, optarg));
-        break;
-      case 12:
-        // --conf
-        set_config_str(&mod_config()->conf_path, optarg);
-        break;
-      case 13:
-        // --syslog
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_SYSLOG, "yes"));
-        break;
-      case 14:
-        // --syslog-facility
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_SYSLOG_FACILITY, optarg));
-        break;
-      case 15:
-        // --backlog
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKLOG, optarg));
-        break;
-      case 16:
-        // --ciphers
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CIPHERS, optarg));
-        break;
-      case 18:
-        // --backend-spdy-window-bits
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_SPDY_WINDOW_BITS,
-                                         optarg));
-        break;
-      case 19:
-        // --cacert
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CACERT, optarg));
-        break;
-      case 20:
-        // --backend-ipv4
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_IPV4, "yes"));
-        break;
-      case 21:
-        // --backend-ipv6
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_IPV6, "yes"));
-        break;
-      case 22:
-        // --private-key-passwd-file
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PRIVATE_KEY_PASSWD_FILE,
-                                         optarg));
-        break;
-      case 23:
-        // --no-via
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_NO_VIA, "yes"));
-        break;
-      default:
-        break;
-      }
-      break;
-    default:
-      break;
-    }
+	case 'c':
+      set_config_str(&mod_config()->conf_path, optarg);
+	  break;
+	default:
+		break;          
   }
 
   if(conf_exists(get_config()->conf_path)) {
@@ -711,15 +563,6 @@ int main(int argc, char **argv)
     }
   }
 
-  if(argc - optind >= 2) {
-    cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PRIVATE_KEY_FILE,
-                                     argv[optind++]));
-    cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CERTIFICATE_FILE,
-                                     argv[optind++]));
-  } else{
-	 LOG(FATAL) << "need ssl private key and public key";
-	 exit(EXIT_FAILURE);
-  }
 
   for(size_t i = 0, len = cmdcfgs.size(); i < len; ++i) {
     if(parse_config(cmdcfgs[i].first, cmdcfgs[i].second) == -1) {
@@ -738,7 +581,7 @@ int main(int argc, char **argv)
 
   if(!get_config()->private_key_file || !get_config()->cert_file) {
     print_usage(std::cerr);
-    LOG(FATAL) << "Too few arguments";
+    LOG(FATAL) << "need ssl key";
     exit(EXIT_FAILURE);
   }
 

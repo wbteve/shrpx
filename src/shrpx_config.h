@@ -84,7 +84,6 @@ struct Config {
   uint16_t port;
   char *private_key_file;
   char *private_key_passwd;
-  char *cert_file;
   bool verify_client;
   const char *server_name;
   char *downstream_host;
@@ -135,9 +134,12 @@ void create_config();
 // returns 0 if it succeeds, or -1.
 int parse_config(const char *opt, const char *optarg);
 
-// Loads configurations from |filename| and stores them in statically
-// allocated Config object. This function returns 0 if it succeeds, or
-// -1.
+
+/**
+ * Loads configurations from |filename| and stores them in statically allocated Config object. 
+ * \param filename config file name
+ * \return This function returns 0 if it succeeds, or -1 for fail;
+ */
 int load_config(const char *filename);
 
 // Read passwd from |filename|

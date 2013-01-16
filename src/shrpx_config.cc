@@ -45,7 +45,6 @@ namespace shrpx {
 
 const char SHRPX_OPT_PRIVATE_KEY_FILE[] = "private-key-file";
 const char SHRPX_OPT_PRIVATE_KEY_PASSWD_FILE[] = "private-key-passwd-file";
-const char SHRPX_OPT_CERTIFICATE_FILE[] = "certificate-file";
 
 const char SHRPX_OPT_BACKEND[] = "backend";
 const char SHRPX_OPT_FRONTEND[] = "frontend";
@@ -268,8 +267,6 @@ int parse_config(const char *opt, const char *optarg)
       return -1;
     }
     set_config_str(&mod_config()->private_key_passwd, passwd.c_str());
-  } else if(util::strieq(opt, SHRPX_OPT_CERTIFICATE_FILE)) {
-    set_config_str(&mod_config()->cert_file, optarg);
   } else if(util::strieq(opt, SHRPX_OPT_SYSLOG)) {
     mod_config()->syslog = util::strieq(optarg, "yes");
   } else if(util::strieq(opt, SHRPX_OPT_SYSLOG_FACILITY)) {
@@ -323,7 +320,7 @@ int load_config(const char *filename)
       LOG(ERROR) << "Bad configuration format at line " << linenum;
       return -1;
     }
-    line[i] = '\0';
+    line[i] = '\0';//把等号替换成'\0',从而切成两个字符串
     const char *s = line.c_str();
     if(parse_config(s, s+i+1) == -1) {
       return -1;
