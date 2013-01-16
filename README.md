@@ -15,7 +15,7 @@ cmake ..
 make
 
 运行:
-src/shrpx -b 10.4.1.30,80 -s ~/spdylay/server.key.insecure ~/spdylay/server.crt 
+src/shrpx -b 10.4.1.30,80 ~/spdylay/server.key.insecure ~/spdylay/server.crt 
 
 -b后面是后端的地址。IP，端口号
 
@@ -26,3 +26,6 @@ src/shrpx -b 10.4.1.30,80 -s ~/spdylay/server.key.insecure ~/spdylay/server.crt
 
 C:\Users\cm\AppData\Local\Google\Chrome\Application\chrome.exe --proxy-server=https://10.4.1.14:3000
 
+
+TODO: 
+<p>身份认证</p>
