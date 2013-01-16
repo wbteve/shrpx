@@ -36,6 +36,8 @@
 #include "shrpx_http.h"
 #include "shrpx_accesslog.h"
 #include "util.h"
+#include "base64.h"
+#include "login_helper.h"
 
 using namespace spdylay;
 
@@ -159,10 +161,13 @@ void on_ctrl_recv_callback
     const char *scheme = 0;
     const char *host = 0;
     const char *method = 0;
+	const char *authorization = 0;
     for(size_t i = 0; nv[i]; i += 2) {
       if(strcmp(nv[i], ":path") == 0) {
         path = nv[i+1];
-      } else if(strcmp(nv[i], ":scheme") == 0) {
+      } else if(strcmp(nv[i], "authorization") == 0) {
+        authorization = nv[i+1];
+      }else if(strcmp(nv[i], ":scheme") == 0) {
         scheme = nv[i+1];
       } else if(strcmp(nv[i], ":method") == 0) {
         method = nv[i+1];
@@ -177,6 +182,37 @@ void on_ctrl_recv_callback
       upstream->rst_stream(downstream, SPDYLAY_INTERNAL_ERROR);
       return;
     }
+	const char* re_nv[]={
+		"www-authenticate",
+		"Basic"
+	  };
+	if(!authorization || strlen(authorization) <=6 ){	  
+	  upstream->error_reply(downstream,401,re_nv,2);	  
+	  return;
+	} else {
+		char dstbuf[1024];
+		memset(dstbuf,0,sizeof(dstbuf));		
+		//TODO:check
+		int dstlen=base64_pton(authorization+6,(uint8_t *)dstbuf,sizeof(dstbuf));
+		if(dstlen<=0){
+			ULOG(ERROR, upstream) <<"auth decode error,origin="<<authorization;
+			upstream->rst_stream(downstream, SPDYLAY_INTERNAL_ERROR);
+			return;
+		} else {
+		   char* auth_end=dstbuf+dstlen;
+		   char* name_end=strchr(dstbuf,':');
+		   if(name_end==NULL || name_end+1>=auth_end) {
+			upstream->error_reply(downstream,401,re_nv,2);		   
+			return;
+		   }
+		   std::string username(dstbuf,name_end-dstbuf);
+		   std::string password(name_end+1,auth_end-name_end-1);
+		   if(!do_login(username,password)){
+		     upstream->error_reply(downstream,401,re_nv,2);		   
+			 return;
+		   }
+		}				
+	}
     if(scheme && path[0] == '/') {
       std::string reqpath = scheme;
       reqpath += "://";
@@ -661,7 +697,7 @@ ssize_t spdy_data_read_callback(spdylay_session *session,
 }
 } // namespace
 
-int SpdyUpstream::error_reply(Downstream *downstream, int status_code)
+int SpdyUpstream::error_reply(Downstream *downstream, int status_code,const char **add_nv,size_t add_nv_length)
 {
   int rv;
   std::string html = http::create_error_html(status_code);
@@ -678,13 +714,23 @@ int SpdyUpstream::error_reply(Downstream *downstream, int status_code)
   data_prd.source.ptr = downstream;
   data_prd.read_callback = spdy_data_read_callback;
 
-  const char *nv[] = {
-    ":status", http::get_status_string(status_code),
-    ":version", "http/1.1",
-    "content-type", "text/html; charset=UTF-8",
-    "server", get_config()->server_name,
-    0
-  };
+  const char ** nv = new  const char *[9+add_nv_length];
+  {
+	  const char** nvp=nv;
+	  *nvp++=":status";
+	  *nvp++=http::get_status_string(status_code);
+	  *nvp++=":version";
+	  *nvp++="http/1.1";
+	  *nvp++="content-type";
+	  *nvp++="text/html; charset=UTF-8";
+	  *nvp++="server";
+	  *nvp++=get_config()->server_name;
+	  for(int i=0;i!=add_nv_length;++i){
+		*nvp++=add_nv[i];
+	  }
+	  *nvp++=0;
+  }
+    
 
   rv = spdylay_submit_response(session_, downstream->get_stream_id(), nv,
                                &data_prd);
