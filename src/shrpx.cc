@@ -52,6 +52,7 @@
 #include "shrpx_config.h"
 #include "shrpx_listen_handler.h"
 #include "shrpx_ssl.h"
+#include "login_helper.h"
 
 namespace shrpx {
 
@@ -521,7 +522,7 @@ int main(int argc, char **argv)
   Log::set_severity_level(WARNING);
   create_config();
   fill_default_config();
-
+  initPasswd("proxy_pass.txt");
   std::vector<std::pair<const char*, const char*> > cmdcfgs;
   while(1) {
     int flag;
