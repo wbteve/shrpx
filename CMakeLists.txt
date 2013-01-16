@@ -32,5 +32,5 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/config.h.in"
   "${PROJECT_BINARY_DIR}/config.h"
  )
- 
+ADD_SUBDIRECTORY(spdylay) 
 ADD_SUBDIRECTORY(src)
