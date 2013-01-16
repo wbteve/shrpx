@@ -3,7 +3,7 @@ shrpx
 
 shrpx是一个基于SPDY( http://www.chromium.org/spdy/ )协议的HTTP Proxy server。它的主要用途是让浏览器可以通过它安全的访问网站。
 
-Browser <--> shrpx <--> squid <--> 目标网站。如https://www.google.com/
+Browser <--> shrpx <--> squid <--> 目标网站(如https://www.google.com/)
 
 squid虽然是一个很优秀的代理服务器，但是它尚不支持SPDY协议。shrpx就在client和squid之间充当了协议翻译官的作用。
 
@@ -25,10 +25,15 @@ cmake ..
 make
 
 配置文件示例：
+
 backend=127.0.0.1:3128 #后端(即squid）的IP，端口号
+
 private-key-file=/home/app/shrpx/private.key #https证书私钥。
+
 certificate-file=/home/app/shrpx/mycert.pem  #https证书公钥。注意证书中的CN一定要与服务器的域名匹配
+
 frontend=10.4.1.14:3000 #本机的IP，端口号。
+
 add-x-forwarded-for=yes #转发给squid的时候加上x-forward-for
 
 
@@ -45,3 +50,7 @@ TODO:
 
 downstream: 指向后端的proxy。 目前支持两种downstream，http和spdy。 https肿么办？
 upstream: 指向browser
+
+欢迎发邮件给我 me@sunchangming.com
+
+Blog: https://www.sunchangming.com/blog/
