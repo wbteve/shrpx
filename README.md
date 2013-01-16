@@ -26,15 +26,11 @@ make
 
 配置文件示例：
 
-backend=127.0.0.1:3128 #后端(即squid）的IP，端口号
-
-private-key-file=/home/app/shrpx/private.key #https证书私钥。
-
-certificate-file=/home/app/shrpx/mycert.pem  #https证书公钥。注意证书中的CN一定要与服务器的域名匹配
-
-frontend=10.4.1.14:3000 #本机的IP，端口号。
-
-add-x-forwarded-for=yes #转发给squid的时候加上x-forward-for
+backend=127.0.0.1:3128 #后端(即squid）的IP，端口号 <br />
+private-key-file=/home/app/shrpx/private.key #https证书私钥。 <br />
+certificate-file=/home/app/shrpx/mycert.pem  #https证书公钥。注意证书中的CN一定要与服务器的域名匹配 <br />
+frontend=10.4.1.14:3000 #本机的IP，端口号。 <br />
+add-x-forwarded-for=yes #转发给squid的时候加上x-forward-for <br />
 
 
 运行:
