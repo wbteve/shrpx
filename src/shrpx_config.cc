@@ -105,7 +105,7 @@ int split_host_port(char *host, size_t hostlen, uint16_t *port_ptr,
                     const char *hostport)
 {
   // host and port in |hostport| is separated by single ','.
-  const char *p = strchr(hostport, ',');
+  const char *p = strchr(hostport, ':');
   if(!p) {
     LOG(ERROR) << "Invalid host, port: " << hostport;
     return -1;
