@@ -204,10 +204,6 @@ int parse_config(const char *opt, const char *optarg)
     }
   } else if(util::strieq(opt, SHRPX_OPT_DAEMON)) {
     mod_config()->daemon = util::strieq(optarg, "yes");
-  } else if(util::strieq(opt, SHRPX_OPT_SPDY_PROXY)) {
-    mod_config()->spdy_proxy = util::strieq(optarg, "yes");
-  } else if(util::strieq(opt, SHRPX_OPT_CLIENT_PROXY)) {
-    mod_config()->client_proxy = util::strieq(optarg, "yes");
   } else if(util::strieq(opt, SHRPX_OPT_ADD_X_FORWARDED_FOR)) {
     mod_config()->add_x_forwarded_for = util::strieq(optarg, "yes");
   } else if(util::strieq(opt, SHRPX_OPT_NO_VIA)) {

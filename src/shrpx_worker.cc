@@ -74,12 +74,7 @@ void Worker::run()
   bufferevent *bev = bufferevent_socket_new(evbase, fd_,
                                             BEV_OPT_DEFER_CALLBACKS);
   SpdySession *spdy = 0;
-  if(get_config()->client_mode) {
-    spdy = new SpdySession(evbase, ssl_ctx_);
-    if(spdy->init_notification() == -1) {
-      DIE();
-    }
-  }
+
   ThreadEventReceiver *receiver = new ThreadEventReceiver(ssl_ctx_, spdy);
   bufferevent_enable(bev, EV_READ);
   bufferevent_setcb(bev, readcb, 0, eventcb, receiver);

@@ -248,9 +248,8 @@ ClientHandler* accept_ssl_connection(event_base *evbase, SSL_CTX *ssl_ctx,
     }
     SSL *ssl = 0;
     bufferevent *bev;
-    if(get_config()->client_mode) {
-      bev = bufferevent_socket_new(evbase, fd, BEV_OPT_DEFER_CALLBACKS);
-    } else {
+
+    {
       ssl = SSL_new(ssl_ctx);
       if(!ssl) {
         LOG(ERROR) << "SSL_new() failed: "

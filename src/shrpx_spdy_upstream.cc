@@ -177,7 +177,7 @@ void on_ctrl_recv_callback
       upstream->rst_stream(downstream, SPDYLAY_INTERNAL_ERROR);
       return;
     }
-    if(get_config()->spdy_proxy && scheme && path[0] == '/') {
+    if(scheme && path[0] == '/') {
       std::string reqpath = scheme;
       reqpath += "://";
       reqpath += host;
@@ -188,9 +188,7 @@ void on_ctrl_recv_callback
     }
 
     downstream->add_request_header("host", host);
-    if(!get_config()->spdy_proxy) {
-      downstream->add_request_header("X-Forwarded-Spdy", "true");
-    }
+
 
     if(ENABLE_LOG) {
       std::stringstream ss;

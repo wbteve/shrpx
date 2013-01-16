@@ -100,7 +100,6 @@ struct Config {
   timeval downstream_idle_read_timeout;
   size_t num_worker;
   size_t spdy_max_concurrent_streams;
-  bool spdy_proxy;
   bool client_proxy;
   bool add_x_forwarded_for;
   bool no_via;
@@ -119,7 +118,6 @@ struct Config {
   char *ciphers;
   bool client;
   // true if --client or --client-proxy are enabled.
-  bool client_mode;
   bool insecure;
   char *cacert;
   bool backend_ipv4;
