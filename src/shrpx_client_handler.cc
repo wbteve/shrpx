@@ -29,7 +29,6 @@
 
 #include "shrpx_upstream.h"
 #include "shrpx_spdy_upstream.h"
-#include "shrpx_https_upstream.h"
 #include "shrpx_config.h"
 #include "shrpx_http_downstream_connection.h"
 #include "shrpx_spdy_downstream_connection.h"
@@ -103,16 +102,21 @@ void upstream_eventcb(bufferevent *bev, short events, void *arg)
         CLOG(INFO, handler) << "SSL/TLS handleshake completed";
       }
       handler->set_bev_cb(upstream_readcb, upstream_writecb, upstream_eventcb);
-      handler->validate_next_proto();
-      if(ENABLE_LOG) {
-        if(SSL_session_reused(handler->get_ssl())) {
-          CLOG(INFO, handler) << "SSL/TLS session reused";
-        }
-      }
-      // At this point, input buffer is already filled with some
-      // bytes.  The read callback is not called until new data
-      // come. So consume input buffer here.
-      handler->get_upstream()->on_read();
+      if(!handler->validate_next_proto()){
+		if(ENABLE_LOG) {
+			if(SSL_session_reused(handler->get_ssl())) {
+			  CLOG(INFO, handler) << "SSL/TLS session reused";
+			}
+		  }
+		  // At this point, input buffer is already filled with some
+		  // bytes.  The read callback is not called until new data
+		  // come. So consume input buffer here.
+		  handler->get_upstream()->on_read();
+	  } else {
+		//XXX:关闭连接？
+		delete handler;
+		finish = true;
+	  }      
     }
   }
 }
@@ -134,11 +138,7 @@ ClientHandler::ClientHandler(bufferevent *bev, int fd, SSL *ssl,
                         &get_config()->upstream_write_timeout);
   if(ssl_) {
     set_bev_cb(0, upstream_writecb, upstream_eventcb);
-  } else {
-    // For client-mode
-    upstream_ = new HttpsUpstream(this);
-    set_bev_cb(upstream_readcb, upstream_writecb, upstream_eventcb);
-  }
+  } 
 }
 
 ClientHandler::~ClientHandler()
@@ -215,12 +215,8 @@ int ClientHandler::validate_next_proto()
       CLOG(INFO, this) << "No proto negotiated.";
     }
   }
-  if(ENABLE_LOG) {
-    CLOG(INFO, this) << "Use HTTP/1.1";
-  }
-  HttpsUpstream *https_upstream = new HttpsUpstream(this);
-  upstream_ = https_upstream;
-  return 0;
+  CLOG(ERROR, this) <<"nego fail";
+  return -1;
 }
 
 int ClientHandler::on_read()

@@ -128,12 +128,17 @@ void evlistener_errorcb(evconnlistener *listener, void *ptr)
 } // namespace
 
 namespace {
+/**
+ * 创建evconnlistener
+ */
 evconnlistener* create_evlistener(ListenHandler *handler, int family)
 {
   // TODO Listen both IPv4 and IPv6
   addrinfo hints;
   int fd = -1;
   int r;
+  
+  //先做名称解析，把get_config()->host、get_config()->port解析成addrinfo
   char service[10];
   snprintf(service, sizeof(service), "%u", get_config()->port);
   memset(&hints, 0, sizeof(addrinfo));
@@ -152,6 +157,7 @@ evconnlistener* create_evlistener(ListenHandler *handler, int family)
                << gai_strerror(r);
     return NULL;
   }
+  //把getaddrinfo返回的addrinfo挨个尝试一遍
   for(rp = res; rp; rp = rp->ai_next) {
     fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if(fd == -1) {
@@ -164,15 +170,7 @@ evconnlistener* create_evlistener(ListenHandler *handler, int family)
       continue;
     }
     evutil_make_socket_nonblocking(fd);
-#ifdef IPV6_V6ONLY
-    if(family == AF_INET6) {
-      if(setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &val,
-                    static_cast<socklen_t>(sizeof(val))) == -1) {
-        close(fd);
-        continue;
-      }
-    }
-#endif // IPV6_V6ONLY
+
     if(bind(fd, rp->ai_addr, rp->ai_addrlen) == 0) {
       break;
     }
@@ -200,7 +198,7 @@ evconnlistener* create_evlistener(ListenHandler *handler, int family)
 
   evconnlistener *evlistener = evconnlistener_new
     (handler->get_evbase(),
-     ssl_acceptcb,
+     ssl_acceptcb,//listener callback
      handler,
      LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE,
      get_config()->backlog,
@@ -211,6 +209,7 @@ evconnlistener* create_evlistener(ListenHandler *handler, int family)
 } // namespace
 
 namespace {
+/** 切换到另一个用户 */
 void drop_privileges()
 {
   if(getuid() == 0 && get_config()->uid != 0) {
@@ -248,10 +247,9 @@ int event_loop()
   // privileges if needed.
   drop_privileges();
 
-  evconnlistener *evlistener6, *evlistener4;
-  evlistener6 = create_evlistener(listener_handler, AF_INET6);
+  evconnlistener *evlistener4;
   evlistener4 = create_evlistener(listener_handler, AF_INET);
-  if(!evlistener6 && !evlistener4) {
+  if(!evlistener4) {
     LOG(FATAL) << "Failed to listen on address "
                << get_config()->host << ", port " << get_config()->port;
     exit(EXIT_FAILURE);
@@ -268,9 +266,7 @@ int event_loop()
   if(evlistener4) {
     evconnlistener_free(evlistener4);
   }
-  if(evlistener6) {
-    evconnlistener_free(evlistener6);
-  }
+
   return 0;
 }
 } // namespace
@@ -719,6 +715,9 @@ int main(int argc, char **argv)
                                      argv[optind++]));
     cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CERTIFICATE_FILE,
                                      argv[optind++]));
+  } else{
+	 LOG(FATAL) << "need ssl private key and public key";
+	 exit(EXIT_FAILURE);
   }
 
   for(size_t i = 0, len = cmdcfgs.size(); i < len; ++i) {

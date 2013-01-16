@@ -87,6 +87,9 @@ void ListenHandler::create_worker_thread(size_t num)
   }
 }
 
+/**
+ * 当accept到新连接的时候调用此方法
+ */
 int ListenHandler::accept_connection(evutil_socket_t fd,
                                      sockaddr *addr, int addrlen)
 {
