@@ -203,13 +203,13 @@ void on_ctrl_recv_callback
 		   char* auth_end=dstbuf+dstlen;
 		   char* name_end=strchr(dstbuf,':');
 		   if(name_end==NULL || name_end+1>=auth_end) {
-			upstream->error_reply(downstream,401,re_nv,2);		   
+			upstream->error_reply(downstream,407,re_nv,2);		   
 			return;
 		   }
 		   std::string username(dstbuf,name_end-dstbuf);
 		   std::string password(name_end+1,auth_end-name_end-1);
 		   if(!do_login(username,password)){
-		     upstream->error_reply(downstream,401,re_nv,2);		   
+		     upstream->error_reply(downstream,407,re_nv,2);		   
 			 return;
 		   }
 		}				
