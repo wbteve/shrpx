@@ -83,13 +83,9 @@ int cache_downstream_host_address()
   snprintf(service, sizeof(service), "%u", get_config()->downstream_port);
   memset(&hints, 0, sizeof(addrinfo));
 
-  if(get_config()->backend_ipv4) {
-    hints.ai_family = AF_INET;
-  } else if(get_config()->backend_ipv6) {
-    hints.ai_family = AF_INET6;
-  } else {
-    hints.ai_family = AF_UNSPEC;
-  }
+  
+  hints.ai_family = AF_INET;
+  
   hints.ai_socktype = SOCK_STREAM;
 #ifdef AI_ADDRCONFIG
   hints.ai_flags |= AI_ADDRCONFIG;
@@ -360,9 +356,7 @@ void fill_default_config()
   mod_config()->cacert = 0;
   mod_config()->pid_file = 0;
   mod_config()->uid = 0;
-  mod_config()->gid = 0;
-  mod_config()->backend_ipv4 = false;
-  mod_config()->backend_ipv6 = false;
+  mod_config()->gid = 0;  
   mod_config()->tty = isatty(fileno(stderr));
 }
 } // namespace
@@ -677,14 +671,6 @@ int main(int argc, char **argv)
         // --cacert
         cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CACERT, optarg));
         break;
-      case 20:
-        // --backend-ipv4
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_IPV4, "yes"));
-        break;
-      case 21:
-        // --backend-ipv6
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_IPV6, "yes"));
-        break;
       case 22:
         // --private-key-passwd-file
         cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PRIVATE_KEY_PASSWD_FILE,
@@ -718,14 +704,6 @@ int main(int argc, char **argv)
       exit(EXIT_FAILURE);
     }
   }
-
-  if(get_config()->backend_ipv4 && get_config()->backend_ipv6) {
-    LOG(FATAL) << "--backend-ipv4 and --backend-ipv6 cannot be used at the "
-               << "same time.";
-    exit(EXIT_FAILURE);
-  }
-
-
 
   if(!get_config()->private_key_file || !get_config()->cert_file) {
     print_usage(std::cerr);

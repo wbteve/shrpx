@@ -67,8 +67,7 @@ extern const char SHRPX_OPT_CIPHERS[];
 extern const char SHRPX_OPT_CLIENT[];
 extern const char SHRPX_OPT_INSECURE[];
 extern const char SHRPX_OPT_CACERT[];
-extern const char SHRPX_OPT_BACKEND_IPV4[];
-extern const char SHRPX_OPT_BACKEND_IPV6[];
+
 
 union sockaddr_union {
   sockaddr sa;
@@ -119,9 +118,7 @@ struct Config {
   bool client;
   // true if --client or --client-proxy are enabled.
   bool insecure;
-  char *cacert;
-  bool backend_ipv4;
-  bool backend_ipv6;
+  char *cacert;  
   // true if stderr refers to a terminal.
   bool tty;
 };

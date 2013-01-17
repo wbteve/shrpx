@@ -51,7 +51,7 @@ public:
 
   int init_notification();
 
-  int check_cert();
+  int check_cert(const char* hostname);
 
   int disconnect();
   int initiate_connection();

@@ -221,11 +221,13 @@ void eventcb(bufferevent *bev, short events, void *ptr)
       SSLOG(INFO, spdy) << "Connection established";
     }
     spdy->connected();
+	
+	/* TODO: check cert
     if((!get_config()->insecure && spdy->check_cert() != 0) ||
        spdy->on_connect() != 0) {
       spdy->disconnect();
       return;
-    }
+    }*/
     int fd = bufferevent_getfd(bev);
     int val = 1;
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
@@ -248,9 +250,9 @@ void eventcb(bufferevent *bev, short events, void *ptr)
 }
 } // namespace
 
-int SpdySession::check_cert()
+int SpdySession::check_cert(const char* hostname)
 {
-  return ssl::check_cert(ssl_);
+  return ssl::check_cert(ssl_,hostname);
 }
 
 int SpdySession::initiate_connection()

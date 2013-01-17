@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Spdylay - SPDY Library
  *
  * Copyright (c) 2012 Tatsuhiro Tsujikawa
@@ -46,6 +46,7 @@
 #include "shrpx_config.h"
 #include "shrpx_accesslog.h"
 #include "util.h"
+
 
 using namespace spdylay;
 
@@ -317,9 +318,7 @@ bool tls_hostname_match(const char *pattern, const char *hostname)
 } // namespace
 
 namespace {
-int verify_hostname(const char *hostname,
-                    const sockaddr_union *su,
-                    size_t salen,
+int verify_hostname(const char *hostname,                  
                     const std::vector<std::string>& dns_names,
                     const std::vector<std::string>& ip_addrs,
                     const std::string& common_name)
@@ -328,13 +327,51 @@ int verify_hostname(const char *hostname,
     if(ip_addrs.empty()) {
       return util::strieq(common_name.c_str(), hostname) ? 0 : -1;
     }
+  
+  
+  addrinfo hints;
+  int rv;
+  const char* service="443";
+  
+  memset(&hints, 0, sizeof(addrinfo));
+  hints.ai_family = AF_INET;
+  //hints.ai_family = AF_UNSPEC;  
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags |= AI_ADDRCONFIG;
+  addrinfo *res;
+
+  rv = getaddrinfo(hostname, service, &hints, &res);
+  if(rv != 0) {
+    LOG(FATAL) << "Unable to get "<<hostname<<" address: " << gai_strerror(rv);
+    return -1;
+  }
+
+  char host[NI_MAXHOST];
+  rv = getnameinfo(res->ai_addr, res->ai_addrlen, host, sizeof(host),
+                  0, 0, NI_NUMERICHOST);
+  if(rv == 0) {
+    LOG(INFO) << "Using first returned address for downstream "
+              << host
+              << ", port "
+              << get_config()->downstream_port;
+  } else {
+    LOG(FATAL) << gai_strerror(rv);
+    DIE();
+  }
+  sockaddr_union su;
+  size_t salen;
+
+  memcpy(&su, res->ai_addr, res->ai_addrlen);
+  salen=res->ai_addrlen;  
+  freeaddrinfo(res);
+  
     const void *saddr;
-    switch(su->storage.ss_family) {
+    switch(su.storage.ss_family) {
     case AF_INET:
-      saddr = &su->in.sin_addr;
+      saddr = &su.in.sin_addr;
       break;
     case AF_INET6:
-      saddr = &su->in6.sin6_addr;
+      saddr = &su.in6.sin6_addr;
       break;
     default:
       return -1;
@@ -359,14 +396,20 @@ int verify_hostname(const char *hostname,
 }
 } // namespace
 
-int check_cert(SSL *ssl)
+/**
+ * 检测SSL信息与证书是否匹配
+ */
+int check_cert(SSL *ssl,const char* hostname)
 {
+  //获取对端的X509证书
   X509 *cert = SSL_get_peer_certificate(ssl);
   if(!cert) {
     LOG(ERROR) << "No certificate found";
     return -1;
   }
+  //当这个函数退出时自动X509_free(cert)
   util::auto_delete<X509*> cert_deleter(cert, X509_free);
+  //验证证书
   long verify_res = SSL_get_verify_result(ssl);
   if(verify_res != X509_V_OK) {
     LOG(ERROR) << "Certificate verification failed: "
@@ -434,10 +477,7 @@ int check_cert(SSL *ssl)
     OPENSSL_free(out);
     break;
   }
-  if(verify_hostname(get_config()->downstream_host,
-                     &get_config()->downstream_addr,
-                     get_config()->downstream_addrlen,
-                     dns_names, ip_addrs, common_name) != 0) {
+  if(verify_hostname(hostname,dns_names, ip_addrs, common_name) != 0) {
     LOG(ERROR) << "Certificate verification failed: hostname does not match";
     return -1;
   }
