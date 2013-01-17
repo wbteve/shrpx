@@ -73,49 +73,6 @@ bool is_ipv6_numeric_addr(const char *host)
 }
 } // namespace
 
-namespace {
-int cache_downstream_host_address()
-{
-  addrinfo hints;
-  int rv;
-  char service[10];
-
-  snprintf(service, sizeof(service), "%u", get_config()->downstream_port);
-  memset(&hints, 0, sizeof(addrinfo));
-
-  
-  hints.ai_family = AF_INET;
-  
-  hints.ai_socktype = SOCK_STREAM;
-#ifdef AI_ADDRCONFIG
-  hints.ai_flags |= AI_ADDRCONFIG;
-#endif // AI_ADDRCONFIG
-  addrinfo *res;
-
-  rv = getaddrinfo(get_config()->downstream_host, service, &hints, &res);
-  if(rv != 0) {
-    LOG(FATAL) << "Unable to get downstream address: " << gai_strerror(rv);
-    DIE();
-  }
-
-  char host[NI_MAXHOST];
-  rv = getnameinfo(res->ai_addr, res->ai_addrlen, host, sizeof(host),
-                  0, 0, NI_NUMERICHOST);
-  if(rv == 0) {
-    LOG(INFO) << "Using first returned address for downstream "
-              << host
-              << ", port "
-              << get_config()->downstream_port;
-  } else {
-    LOG(FATAL) << gai_strerror(rv);
-    DIE();
-  }
-  memcpy(&mod_config()->downstream_addr, res->ai_addr, res->ai_addrlen);
-  mod_config()->downstream_addrlen = res->ai_addrlen;
-  freeaddrinfo(res);
-  return 0;
-}
-} // namespace
 
 namespace {
 void evlistener_errorcb(evconnlistener *listener, void *ptr)
@@ -333,11 +290,6 @@ void fill_default_config()
   mod_config()->spdy_upstream_window_bits = 16;
   mod_config()->spdy_downstream_window_bits = 16;
 
-  set_config_str(&mod_config()->downstream_host, "127.0.0.1");
-  mod_config()->downstream_port = 80;
-  mod_config()->downstream_hostport = 0;
-  mod_config()->downstream_addrlen = 0;
-
   mod_config()->num_worker = 1;
   mod_config()->spdy_max_concurrent_streams =
     SPDYLAY_INITIAL_MAX_CONCURRENT_STREAMS;
@@ -353,7 +305,6 @@ void fill_default_config()
   mod_config()->ciphers = 0;
   mod_config()->client = false;
   mod_config()->insecure = false;
-  mod_config()->cacert = 0;
   mod_config()->pid_file = 0;
   mod_config()->uid = 0;
   mod_config()->gid = 0;  
@@ -508,44 +459,8 @@ int main(int argc, char **argv)
   fill_default_config();
   initPasswd("proxy_pass.txt");
   std::vector<std::pair<const char*, const char*> > cmdcfgs;
-  while(1) {
-    int flag;
-    static option long_options[] = {
-      {"daemon", no_argument, 0, 'D' },
-      {"log-level", required_argument, 0, 'L' },
-      {"spdy-max-concurrent-streams", required_argument, 0, 'c' },
-      {"frontend", required_argument, 0, 'f' },
-      {"help", no_argument, 0, 'h' },
-      {"insecure", no_argument, 0, 'k' },
-      {"workers", required_argument, 0, 'n' },
-      {"version", no_argument, 0, 'v' },
-      {"add-x-forwarded-for", no_argument, &flag, 1 },
-      {"frontend-spdy-read-timeout", required_argument, &flag, 2 },
-      {"frontend-read-timeout", required_argument, &flag, 3 },
-      {"frontend-write-timeout", required_argument, &flag, 4 },
-      {"backend-read-timeout", required_argument, &flag, 5 },
-      {"backend-write-timeout", required_argument, &flag, 6 },
-      {"accesslog", no_argument, &flag, 7 },
-      {"backend-keep-alive-timeout", required_argument, &flag, 8 },
-      {"frontend-spdy-window-bits", required_argument, &flag, 9 },
-      {"pid-file", required_argument, &flag, 10 },
-      {"user", required_argument, &flag, 11 },
-      {"conf", required_argument, &flag, 12 },
-      {"syslog", no_argument, &flag, 13 },
-      {"syslog-facility", required_argument, &flag, 14 },
-      {"backlog", required_argument, &flag, 15 },
-      {"ciphers", required_argument, &flag, 16 },
-      {"backend-spdy-window-bits", required_argument, &flag, 18 },
-      {"cacert", required_argument, &flag, 19 },
-      {"backend-ipv4", no_argument, &flag, 20 },
-      {"backend-ipv6", no_argument, &flag, 21 },
-      {"private-key-passwd-file", required_argument, &flag, 22},
-      {"no-via", no_argument, &flag, 23},
-      {0, 0, 0, 0 }
-    };
-    int option_index = 0;
-    int c = getopt_long(argc, argv, "DL:b:c:f:hkn:pv", long_options,
-                        &option_index);
+  while(1) {   
+    int c = getopt(argc, argv, "DL:c:vh");
     if(c == -1) {
       break;
     }
@@ -556,125 +471,24 @@ int main(int argc, char **argv)
     case 'L':
       cmdcfgs.push_back(std::make_pair(SHRPX_OPT_LOG_LEVEL, optarg));
       break;
-    case 'b':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND, optarg));
-      break;
+    
     case 'c':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_SPDY_MAX_CONCURRENT_STREAMS,
-                                       optarg));
-      break;
-    case 'f':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND, optarg));
-      break;
+      set_config_str(&mod_config()->conf_path, optarg);
+      break;    
     case 'h':
       print_help(std::cout);
       exit(EXIT_SUCCESS);
-    case 'k':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_INSECURE, "yes"));
-      break;
-    case 'n':
-      cmdcfgs.push_back(std::make_pair(SHRPX_OPT_WORKERS, optarg));
-      break;
+	  break;  
     case 'v':
       print_version(std::cout);
       exit(EXIT_SUCCESS);
+	  break;
     case '?':
-      exit(EXIT_FAILURE);
-    case 0:
-      switch(flag) {
-      case 1:
-        // --add-x-forwarded-for
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_ADD_X_FORWARDED_FOR,
-                                         "yes"));
-        break;
-      case 2:
-        // --frontend-spdy-read-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_SPDY_READ_TIMEOUT,
-                                         optarg));
-        break;
-      case 3:
-        // --frontend-read-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_READ_TIMEOUT,
-                                         optarg));
-        break;
-      case 4:
-        // --frontend-write-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_WRITE_TIMEOUT,
-                                         optarg));
-        break;
-      case 5:
-        // --backend-read-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_READ_TIMEOUT,
-                                         optarg));
-        break;
-      case 6:
-        // --backend-write-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_WRITE_TIMEOUT,
-                                         optarg));
-        break;
-      case 7:
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_ACCESSLOG, "yes"));
-        break;
-      case 8:
-        // --backend-keep-alive-timeout
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_KEEP_ALIVE_TIMEOUT,
-                                         optarg));
-        break;
-      case 9:
-        // --frontend-spdy-window-bits
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_FRONTEND_SPDY_WINDOW_BITS,
-                                         optarg));
-        break;
-      case 10:
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PID_FILE, optarg));
-        break;
-      case 11:
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_USER, optarg));
-        break;
-      case 12:
-        // --conf
-        set_config_str(&mod_config()->conf_path, optarg);
-        break;
-      case 13:
-        // --syslog
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_SYSLOG, "yes"));
-        break;
-      case 14:
-        // --syslog-facility
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_SYSLOG_FACILITY, optarg));
-        break;
-      case 15:
-        // --backlog
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKLOG, optarg));
-        break;
-      case 16:
-        // --ciphers
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CIPHERS, optarg));
-        break;
-      case 18:
-        // --backend-spdy-window-bits
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_BACKEND_SPDY_WINDOW_BITS,
-                                         optarg));
-        break;
-      case 19:
-        // --cacert
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_CACERT, optarg));
-        break;
-      case 22:
-        // --private-key-passwd-file
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_PRIVATE_KEY_PASSWD_FILE,
-                                         optarg));
-        break;
-      case 23:
-        // --no-via
-        cmdcfgs.push_back(std::make_pair(SHRPX_OPT_NO_VIA, "yes"));
-        break;
-      default:
-        break;
-      }
-      break;
+      exit(EXIT_FAILURE);   
+	  break;  
     default:
-      break;
+      print_help(std::cout);
+      exit(EXIT_SUCCESS);
     }
   }
 
@@ -697,27 +511,6 @@ int main(int argc, char **argv)
   if(!get_config()->private_key_file || !get_config()->cert_file) {
     print_usage(std::cerr);
     LOG(FATAL) << "need ssl key";
-    exit(EXIT_FAILURE);
-  }
-
-  char hostport[NI_MAXHOST+16];
-  bool downstream_ipv6_addr =
-    is_ipv6_numeric_addr(get_config()->downstream_host);
-  if(get_config()->downstream_port == 80) {
-    snprintf(hostport, sizeof(hostport), "%s%s%s",
-             downstream_ipv6_addr ? "[" : "",
-             get_config()->downstream_host,
-             downstream_ipv6_addr ? "]" : "");
-  } else {
-    snprintf(hostport, sizeof(hostport), "%s%s%s:%u",
-             downstream_ipv6_addr ? "[" : "",
-             get_config()->downstream_host,
-             downstream_ipv6_addr ? "]" : "",
-             get_config()->downstream_port);
-  }
-  set_config_str(&mod_config()->downstream_hostport, hostport);
-
-  if(cache_downstream_host_address() == -1) {
     exit(EXIT_FAILURE);
   }
 

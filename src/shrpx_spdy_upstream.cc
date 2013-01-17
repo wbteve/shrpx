@@ -726,7 +726,7 @@ int SpdyUpstream::error_reply(Downstream *downstream, int status_code,const char
 	  *nvp++="text/html; charset=UTF-8";
 	  *nvp++="server";
 	  *nvp++=get_config()->server_name;
-	  for(int i=0;i!=add_nv_length;++i){
+	  for(size_t i=0;i!=add_nv_length;++i){
 		*nvp++=add_nv[i];
 	  }
 	  *nvp++=0;

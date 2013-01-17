@@ -177,14 +177,7 @@ int parse_config(const char *opt, const char *optarg)
 {
   char host[NI_MAXHOST];
   uint16_t port;
-  if(util::strieq(opt, SHRPX_OPT_BACKEND)) {
-    if(split_host_port(host, sizeof(host), &port, optarg) == -1) {
-      return -1;
-    } else {
-      set_config_str(&mod_config()->downstream_host, host);
-      mod_config()->downstream_port = port;
-    }
-  } else if(util::strieq(opt, SHRPX_OPT_FRONTEND)) {
+  if(util::strieq(opt, SHRPX_OPT_FRONTEND)) {
     if(split_host_port(host, sizeof(host), &port, optarg) == -1) {
       return -1;
     } else {
@@ -285,8 +278,6 @@ int parse_config(const char *opt, const char *optarg)
     mod_config()->client = util::strieq(optarg, "yes");
   } else if(util::strieq(opt, SHRPX_OPT_INSECURE)) {
     mod_config()->insecure = util::strieq(optarg, "yes");
-  } else if(util::strieq(opt, SHRPX_OPT_CACERT)) {
-    set_config_str(&mod_config()->cacert, optarg);
   } else if(util::strieq(opt, "conf")) {
     LOG(WARNING) << "conf is ignored";
   } else {

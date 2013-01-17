@@ -96,8 +96,8 @@ int ListenHandler::accept_connection(evutil_socket_t fd,
     LLOG(INFO, this) << "Accepted connection. fd=" << fd;
   }
   if(num_worker_ == 0) {
-    ClientHandler* client =
-      ssl::accept_ssl_connection(evbase_, ssl_ctx_, fd, addr, addrlen);
+    //ClientHandler* client =
+    ssl::accept_ssl_connection(evbase_, ssl_ctx_, fd, addr, addrlen);
   } else {
     size_t idx = worker_round_robin_cnt_ % num_worker_;
     ++worker_round_robin_cnt_;

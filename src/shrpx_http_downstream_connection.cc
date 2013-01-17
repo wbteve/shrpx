@@ -128,6 +128,7 @@ int HttpDownstreamConnection::push_request_headers()
     if(util::strieq((*i).first.c_str(), "X-Forwarded-Proto") ||
        util::strieq((*i).first.c_str(), "keep-alive") ||
        util::strieq((*i).first.c_str(), "connection") ||
+	   util::strieq((*i).first.c_str(), "proxy-authorization") ||	   
        util::strieq((*i).first.c_str(), "proxy-connection")) {
       continue;
     }

@@ -86,11 +86,7 @@ struct Config {
   char *cert_file;
   bool verify_client;
   const char *server_name;
-  char *downstream_host;
-  uint16_t downstream_port;
-  char *downstream_hostport;
-  sockaddr_union downstream_addr;
-  size_t downstream_addrlen;
+
   timeval spdy_upstream_read_timeout;
   timeval upstream_read_timeout;
   timeval upstream_write_timeout;
@@ -118,7 +114,6 @@ struct Config {
   bool client;
   // true if --client or --client-proxy are enabled.
   bool insecure;
-  char *cacert;  
   // true if stderr refers to a terminal.
   bool tty;
 };
