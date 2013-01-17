@@ -374,6 +374,40 @@ void Downstream::set_response_minor(int minor)
   response_minor_ = minor;
 }
 
+static int split_host_port(char *host, size_t hostlen, uint16_t& port_ptr, const char *hostport)
+{
+  // host and port in |hostport| is separated by single ','.
+  const char *p = strchr(hostport, ':');
+  if(!p) {
+    strncpy(host,hostport,hostlen-1);
+	host[hostlen-1]='\0';
+    return 0;
+  }
+  size_t len = p-hostport;
+  if(hostlen < len+1) {
+    LOG(ERROR) << "Hostname too long: " << hostport;
+    return -1;
+  }
+  memcpy(host, hostport, len);
+  host[len] = '\0';
+
+  errno = 0;
+  unsigned long d = strtoul(p+1, 0, 10);
+  if(errno == 0 && 1 <= d && d <= std::numeric_limits<uint16_t>::max()) {
+    port_ptr = d;
+    return 0;
+  } else {
+    LOG(ERROR) << "Port is invalid: " << p+1;
+    return -1;
+  }
+}
+
+
+
+void Downstream::set_host_and_port(const char* value){
+	split_host_port(hostname,sizeof(hostname),dstport,value);
+}
+
 int Downstream::get_response_major() const
 {
   return response_major_;

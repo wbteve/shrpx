@@ -32,6 +32,7 @@
 #include "shrpx_client_handler.h"
 #include "shrpx_downstream.h"
 #include "shrpx_downstream_connection.h"
+#include "shrpx_http_downstream_connection.h"
 #include "shrpx_config.h"
 #include "shrpx_http.h"
 #include "shrpx_accesslog.h"
@@ -157,10 +158,10 @@ void on_ctrl_recv_callback
     downstream->init_response_body_buf();
 
     char **nv = frame->syn_stream.nv;
-    const char *path = 0;
+    const char *path = 0; //must
     const char *scheme = 0;
     const char *host = 0;
-    const char *method = 0;
+    const char *method = 0; //must
 	const char *authorization = 0;
     for(size_t i = 0; nv[i]; i += 2) {
       if(strcmp(nv[i], ":path") == 0) {
@@ -223,7 +224,7 @@ void on_ctrl_recv_callback
     } else {
       downstream->set_request_path(path);
     }
-
+	downstream->set_host_and_port(host);
     downstream->add_request_header("host", host);
 
 
@@ -237,8 +238,7 @@ void on_ctrl_recv_callback
                            << "\n" << ss.str();
     }
 
-    DownstreamConnection *dconn;
-    dconn = upstream->get_client_handler()->get_downstream_connection();
+    DownstreamConnection *dconn=new HttpDownstreamConnection(upstream->get_client_handler());    
     int rv = dconn->attach_downstream(downstream);
     if(rv != 0) {
       // If downstream connection fails, issue RST_STREAM.

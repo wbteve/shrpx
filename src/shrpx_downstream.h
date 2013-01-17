@@ -79,7 +79,10 @@ public:
 
   void set_request_method(const std::string& method);
   const std::string& get_request_method() const;
+  
   void set_request_path(const std::string& path);
+  void set_host_and_port(const char* value);
+  
   void append_request_path(const char *data, size_t len);
   const std::string& get_request_path() const;
   void set_request_major(int major);
@@ -128,6 +131,9 @@ public:
   int get_response_state() const;
   int init_response_body_buf();
   evbuffer* get_response_body_buf();
+  
+  const char* getHostname(){return hostname;}
+  uint16_t getDstPort(){return dstport;}
 
   // Call this method when there is incoming data in downstream
   // connection.
@@ -166,6 +172,8 @@ private:
   // body. Spdylay reads data from this in the callback.
   evbuffer *response_body_buf_;
   int32_t recv_window_size_;
+  char hostname[1024];
+  uint16_t dstport;
 };
 
 } // namespace shrpx

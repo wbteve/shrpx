@@ -22,6 +22,8 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+#include <event2/dns.h>
+ 
 #include "shrpx_http_downstream_connection.h"
 
 #include "shrpx_client_handler.h"
@@ -75,11 +77,10 @@ int HttpDownstreamConnection::attach_downstream(Downstream *downstream)
     bev_ = bufferevent_socket_new
       (evbase, -1,
        BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
-    int rv = bufferevent_socket_connect
-      (bev_,
-       // TODO maybe not thread-safe?
-       const_cast<sockaddr*>(&get_config()->downstream_addr.sa),
-       get_config()->downstream_addrlen);
+	 evdns_base * evdns=evdns_base_new(evbase,1);   
+    int rv = bufferevent_socket_connect_hostname
+      (bev_,evdns,AF_INET,downstream->getHostname(),downstream->getDstPort());
+	evdns_base_free(evdns,0);
     if(rv != 0) {
       bufferevent_free(bev_);
       bev_ = 0;
