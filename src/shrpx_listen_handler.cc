@@ -32,7 +32,6 @@
 #include <event2/bufferevent_ssl.h>
 
 #include "shrpx_client_handler.h"
-#include "shrpx_thread_event_receiver.h"
 #include "shrpx_ssl.h"
 #include "shrpx_worker.h"
 #include "shrpx_config.h"
@@ -51,41 +50,6 @@ ListenHandler::ListenHandler(event_base *evbase)
 ListenHandler::~ListenHandler()
 {}
 
-void ListenHandler::create_worker_thread(size_t num)
-{
-  workers_ = new WorkerInfo[num];
-  num_worker_ = 0;
-  for(size_t i = 0; i < num; ++i) {
-    int rv;
-    pthread_t thread;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    WorkerInfo *info = &workers_[num_worker_];
-    rv = socketpair(AF_UNIX, SOCK_STREAM, 0, info->sv);
-    if(rv == -1) {
-      LLOG(ERROR, this) << "socketpair() failed: " << strerror(errno);
-      continue;
-    }
-    info->ssl_ctx = ssl_ctx_;
-    rv = pthread_create(&thread, &attr, start_threaded_worker, info);
-    if(rv != 0) {
-      LLOG(ERROR, this) << "pthread_create() failed: " << strerror(rv);
-      for(size_t j = 0; j < 2; ++j) {
-        close(info->sv[j]);
-      }
-      continue;
-    }
-    bufferevent *bev = bufferevent_socket_new(evbase_, info->sv[0],
-                                              BEV_OPT_DEFER_CALLBACKS);
-    info->bev = bev;
-    if(ENABLE_LOG) {
-      LLOG(INFO, this) << "Created thread #" << num_worker_;
-    }
-    ++num_worker_;
-  }
-}
-
 /**
  * 当accept到新连接的时候调用此方法
  */
@@ -95,20 +59,8 @@ int ListenHandler::accept_connection(evutil_socket_t fd,
   if(ENABLE_LOG) {
     LLOG(INFO, this) << "Accepted connection. fd=" << fd;
   }
-  if(num_worker_ == 0) {
-    //ClientHandler* client =
-    ssl::accept_ssl_connection(evbase_, ssl_ctx_, fd, addr, addrlen);
-  } else {
-    size_t idx = worker_round_robin_cnt_ % num_worker_;
-    ++worker_round_robin_cnt_;
-    WorkerEvent wev;
-    memset(&wev, 0, sizeof(wev));
-    wev.client_fd = fd;
-    memcpy(&wev.client_addr, addr, addrlen);
-    wev.client_addrlen = addrlen;
-    evbuffer *output = bufferevent_get_output(workers_[idx].bev);
-    evbuffer_add(output, &wev, sizeof(wev));
-  }
+  
+  ssl::accept_ssl_connection(evbase_, ssl_ctx_, fd, addr, addrlen);  
   return 0;
 }
 

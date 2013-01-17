@@ -49,7 +49,6 @@ public:
   ListenHandler(event_base *evbase);
   ~ListenHandler();
   int accept_connection(evutil_socket_t fd, sockaddr *addr, int addrlen);
-  void create_worker_thread(size_t num);
   event_base* get_evbase() const;
 private:
   event_base *evbase_;

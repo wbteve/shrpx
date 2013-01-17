@@ -92,20 +92,6 @@ void set_npn_prefs(unsigned char *out, const char **protos, size_t len)
 }
 } // namespace
 
-namespace {
-int ssl_pem_passwd_cb(char *buf, int size, int rwflag, void *user_data)
-{
-  Config *config = (Config *)user_data;
-  int len = (int)strlen(config->private_key_passwd);
-  if (size < len + 1) {
-    LOG(ERROR) << "ssl_pem_passwd_cb: buf is too small " << size;
-    return 0;
-  }
-  // Copy string including last '\0'.
-  memcpy(buf, config->private_key_passwd, len+1);
-  return len;
-}
-} // namespace
 
 SSL_CTX* create_ssl_context()
 {
@@ -134,10 +120,7 @@ SSL_CTX* create_ssl_context()
   SSL_CTX_set_mode(ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
   SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
   SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
-  if (get_config()->private_key_passwd) {
-    SSL_CTX_set_default_passwd_cb(ssl_ctx, ssl_pem_passwd_cb);
-    SSL_CTX_set_default_passwd_cb_userdata(ssl_ctx, (void *)get_config());
-  }
+
   if(SSL_CTX_use_PrivateKey_file(ssl_ctx,
                                  get_config()->private_key_file,
                                  SSL_FILETYPE_PEM) != 1) {

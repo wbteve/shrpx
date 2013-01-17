@@ -69,20 +69,13 @@ extern const char SHRPX_OPT_INSECURE[];
 extern const char SHRPX_OPT_CACERT[];
 
 
-union sockaddr_union {
-  sockaddr sa;
-  sockaddr_storage storage;
-  sockaddr_in6 in6;
-  sockaddr_in in;
-};
-
 struct Config {
   bool verbose;
   bool daemon;
   char *host;
   uint16_t port;
   char *private_key_file;
-  char *private_key_passwd;
+  char *user_passwd_file;
   char *cert_file;
   bool verify_client;
   const char *server_name;
@@ -93,7 +86,6 @@ struct Config {
   timeval downstream_read_timeout;
   timeval downstream_write_timeout;
   timeval downstream_idle_read_timeout;
-  size_t num_worker;
   size_t spdy_max_concurrent_streams;
   bool client_proxy;
   bool add_x_forwarded_for;

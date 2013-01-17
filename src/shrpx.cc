@@ -54,7 +54,7 @@
 #include "shrpx_ssl.h"
 #include "login_helper.h"
 
-namespace shrpx {
+using namespace shrpx;
 
 namespace {
 void ssl_acceptcb(evconnlistener *listener, int fd,
@@ -209,9 +209,6 @@ int event_loop()
     exit(EXIT_FAILURE);
   }
 
-  if(get_config()->num_worker > 1) {
-    listener_handler->create_worker_thread(get_config()->num_worker);
-  } 
 
   if(ENABLE_LOG) {
     LOG(INFO) << "Entering event loop";
@@ -261,7 +258,7 @@ void fill_default_config()
   set_config_str(&mod_config()->host, "0.0.0.0");
   mod_config()->port = 3000;
   mod_config()->private_key_file = 0;
-  mod_config()->private_key_passwd = 0;
+  mod_config()->user_passwd_file = 0;
   mod_config()->cert_file = 0;
 
   // Read timeout for SPDY upstream connection
@@ -290,7 +287,6 @@ void fill_default_config()
   mod_config()->spdy_upstream_window_bits = 16;
   mod_config()->spdy_downstream_window_bits = 16;
 
-  mod_config()->num_worker = 1;
   mod_config()->spdy_max_concurrent_streams =
     SPDYLAY_INITIAL_MAX_CONCURRENT_STREAMS;
   mod_config()->add_x_forwarded_for = false;
@@ -322,9 +318,7 @@ void print_version(std::ostream& out)
 namespace {
 void print_usage(std::ostream& out)
 {
-  out << "Usage: shrpx [-Dh] [-s|--client|-p] [-b <HOST,PORT>]\n"
-      << "             [-f <HOST,PORT>] [-n <CORES>] [-c <NUM>] [-L <LEVEL>]\n"
-      << "             [OPTIONS...] [<PRIVATE_KEY> <CERT>]\n"
+  out << "Usage: shrpx [-D] [-c <config.ini>] [-L <LEVEL>]\n"
       << "\n"
       << "A reverse proxy for SPDY/HTTPS.\n"
       << std::endl;
@@ -335,120 +329,6 @@ namespace {
 void print_help(std::ostream& out)
 {
   print_usage(out);
-  out << "Positional arguments:\n"
-      << "    <PRIVATE_KEY>      Set path to server's private key. Required\n"
-      << "                       unless either -p or --client is specified.\n"
-      << "    <CERT>             Set path to server's certificate. Required\n"
-      << "                       unless either -p or --client is specified.\n"
-      << "\n"
-      << "OPTIONS:\n"
-      << "\n"
-      << "  Connections:\n"
-      << "    -f, --frontend=<HOST,PORT>\n"
-      << "                       Set frontend host and port.\n"
-      << "                       Default: '"
-      << get_config()->host << "," << get_config()->port << "'\n"
-      << "    --backlog=<NUM>    Set listen backlog size.\n"
-      << "                       Default: "
-      << "\n"
-      << "  Performance:\n"
-      << "    -n, --workers=<CORES>\n"
-      << "                       Set the number of worker threads.\n"
-      << "                       Default: "
-      << get_config()->num_worker << "\n"
-      << "\n"
-      << "  Timeout:\n"
-      << "    --frontend-spdy-read-timeout=<SEC>\n"
-      << "                       Specify read timeout for SPDY frontend\n"
-      << "                       connection. Default: "
-      << get_config()->spdy_upstream_read_timeout.tv_sec << "\n"
-      << "    --frontend-read-timeout=<SEC>\n"
-      << "                       Specify read timeout for non-SPDY frontend\n"
-      << "                       connection. Default: "
-      << get_config()->upstream_read_timeout.tv_sec << "\n"
-      << "    --frontend-write-timeout=<SEC>\n"
-      << "                       Specify write timeout for both SPDY and\n"
-      << "                       non-SPDY frontends.\n"
-      << "                       connection. Default: "
-      << get_config()->upstream_write_timeout.tv_sec << "\n"
-      << "    --backend-read-timeout=<SEC>\n"
-      << "                       Specify read timeout for backend connection.\n"
-      << "                       Default: "
-      << get_config()->downstream_read_timeout.tv_sec << "\n"
-      << "    --backend-write-timeout=<SEC>\n"
-      << "                       Specify write timeout for backend\n"
-      << "                       connection. Default: "
-      << get_config()->downstream_write_timeout.tv_sec << "\n"
-      << "    --backend-keep-alive-timeout=<SEC>\n"
-      << "                       Specify keep-alive timeout for backend\n"
-      << "                       connection. Default: "
-      << get_config()->downstream_idle_read_timeout.tv_sec << "\n"
-      << "\n"
-      << "  SSL/TLS:\n"
-      << "    --ciphers=<SUITE>  Set allowed cipher list. The format of the\n"
-      << "                       string is described in OpenSSL ciphers(1).\n"
-      << "    -k, --insecure     When used with -p or --client, don't verify\n"
-      << "                       backend server's certificate.\n"
-      << "    --cacert=<PATH>    When used with -p or --client, set path to\n"
-      << "                       trusted CA certificate file.\n"
-      << "                       The file must be in PEM format. It can\n"
-      << "                       contain multiple certificates. If the\n"
-      << "                       linked OpenSSL is configured to load system\n"
-      << "                       wide certificates, they are loaded\n"
-      << "                       at startup regardless of this option.\n"
-      << "    --private-key-passwd-file=<FILEPATH>\n"
-      << "                       Path to file that contains password for the\n"
-      << "                       server's private key. If none is given and\n"
-      << "                       the private key is password protected it'll\n"
-      << "                       be requested interactively.\n"
-      << "\n"
-      << "  SPDY:\n"
-      << "    -c, --spdy-max-concurrent-streams=<NUM>\n"
-      << "                       Set the maximum number of the concurrent\n"
-      << "                       streams in one SPDY session.\n"
-      << "                       Default: "
-      << get_config()->spdy_max_concurrent_streams << "\n"
-      << "    --frontend-spdy-window-bits=<N>\n"
-      << "                       Sets the initial window size of SPDY\n"
-      << "                       frontend connection to 2**<N>.\n"
-      << "                       Default: "
-      << get_config()->spdy_upstream_window_bits << "\n"
-      << "    --backend-spdy-window-bits=<N>\n"
-      << "                       Sets the initial window size of SPDY\n"
-      << "                       backend connection to 2**<N>.\n"
-      << "                       Default: "
-      << get_config()->spdy_downstream_window_bits << "\n"
-      << "\n"
-      << "  Logging:\n"
-      << "    -L, --log-level=<LEVEL>\n"
-      << "                       Set the severity level of log output.\n"
-      << "                       INFO, WARNING, ERROR and FATAL.\n"
-      << "                       Default: WARNING\n"
-      << "    --accesslog        Print simple accesslog to stderr.\n"
-      << "    --syslog           Send log messages to syslog.\n"
-      << "    --syslog-facility=<FACILITY>\n"
-      << "                       Set syslog facility.\n"
-      << "                       Default: "
-      << str_syslog_facility(get_config()->syslog_facility) << "\n"
-      << "\n"
-      << "  Misc:\n"
-      << "    --add-x-forwarded-for\n"
-      << "                       Append X-Forwarded-For header field to the\n"
-      << "                       downstream request.\n"
-      << "    --no-via           Don't append to Via header field. If Via\n"
-      << "                       header field is received, it is left\n"
-      << "                       unaltered.\n"
-      << "    -D, --daemon       Run in a background. If -D is used, the\n"
-      << "                       current working directory is changed to '/'.\n"
-      << "    --pid-file=<PATH>  Set path to save PID of this program.\n"
-      << "    --user=<USER>      Run this program as USER. This option is\n"
-      << "                       intended to be used to drop root privileges.\n"
-      << "    --conf=<PATH>      Load configuration from PATH.\n"
-      << "                       Default: "
-      << get_config()->conf_path << "\n"
-      << "    -v, --version      Print version and exit.\n"
-      << "    -h, --help         Print this help and exit.\n"
-      << std::endl;
 }
 } // namespace
 
@@ -457,7 +337,6 @@ int main(int argc, char **argv)
   Log::set_severity_level(WARNING);
   create_config();
   fill_default_config();
-  initPasswd("proxy_pass.txt");
   std::vector<std::pair<const char*, const char*> > cmdcfgs;
   while(1) {   
     int c = getopt(argc, argv, "DL:c:vh");
@@ -524,6 +403,13 @@ int main(int argc, char **argv)
     save_pid();
   }
 
+  const char* passwd_file=get_config()->user_passwd_file;
+  if(!passwd_file){
+    LOG(FATAL) << "need provides passwd file";
+    exit(EXIT_FAILURE);
+  }
+  initPasswd(passwd_file);
+
   struct sigaction act;
   memset(&act, 0, sizeof(struct sigaction));
   act.sa_handler = SIG_IGN;
@@ -541,9 +427,5 @@ int main(int argc, char **argv)
   return 0;
 }
 
-} // namespace shrpx
 
-int main(int argc, char **argv)
-{
-  return shrpx::main(argc, argv);
-}
+

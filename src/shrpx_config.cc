@@ -44,7 +44,7 @@ using namespace spdylay;
 namespace shrpx {
 
 const char SHRPX_OPT_PRIVATE_KEY_FILE[] = "private-key-file";
-const char SHRPX_OPT_PRIVATE_KEY_PASSWD_FILE[] = "private-key-passwd-file";
+const char SHRPX_OPT_USER_PASSWD_FILE[] = "user-passwd-file";
 const char SHRPX_OPT_CERTIFICATE_FILE[] = "certificate-file";
 
 const char SHRPX_OPT_BACKEND[] = "backend";
@@ -184,8 +184,6 @@ int parse_config(const char *opt, const char *optarg)
       set_config_str(&mod_config()->host, host);
       mod_config()->port = port;
     }
-  } else if(util::strieq(opt, SHRPX_OPT_WORKERS)) {
-    mod_config()->num_worker = strtol(optarg, 0, 10);
   } else if(util::strieq(opt, SHRPX_OPT_SPDY_MAX_CONCURRENT_STREAMS)) {
     mod_config()->spdy_max_concurrent_streams = strtol(optarg, 0, 10);
   } else if(util::strieq(opt, SHRPX_OPT_LOG_LEVEL)) {
@@ -252,13 +250,8 @@ int parse_config(const char *opt, const char *optarg)
     mod_config()->gid = pwd->pw_gid;
   } else if(util::strieq(opt, SHRPX_OPT_PRIVATE_KEY_FILE)) {
     set_config_str(&mod_config()->private_key_file, optarg);
-  } else if(util::strieq(opt, SHRPX_OPT_PRIVATE_KEY_PASSWD_FILE)) {
-    std::string passwd = read_passwd_from_file(optarg);
-    if (passwd.empty()) {
-      LOG(ERROR) << "Couldn't read key file's passwd from " << optarg;
-      return -1;
-    }
-    set_config_str(&mod_config()->private_key_passwd, passwd.c_str());
+  } else if(util::strieq(opt, SHRPX_OPT_USER_PASSWD_FILE)) {    
+    set_config_str(&mod_config()->user_passwd_file, optarg);
   } else if(util::strieq(opt, SHRPX_OPT_CERTIFICATE_FILE)) {
     set_config_str(&mod_config()->cert_file, optarg);
   } else if(util::strieq(opt, SHRPX_OPT_SYSLOG)) {
