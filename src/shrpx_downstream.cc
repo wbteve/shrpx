@@ -404,7 +404,11 @@ static int split_host_port(char *host, size_t hostlen, uint16_t& port_ptr, const
 
 
 
-void Downstream::set_host_and_port(const char* value){
+void Downstream::set_host_and_port(const char* value,const char* scheme){
+	if(!strcmp(scheme,"http"))
+		dstport=80;
+	else if(!strcmp(scheme,"https"))
+		dstport=443;
 	split_host_port(hostname,sizeof(hostname),dstport,value);
 }
 

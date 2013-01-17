@@ -73,22 +73,23 @@ int HttpDownstreamConnection::attach_downstream(Downstream *downstream)
   }
   Upstream *upstream = downstream->get_upstream();
   if(!bev_) {
+    if(ENABLE_LOG) {
+      DCLOG(INFO, this) << "Connecting to downstream server "<<downstream->getHostname()<<":"<<downstream->getDstPort();
+    }
     event_base *evbase = client_handler_->get_evbase();
     bev_ = bufferevent_socket_new
       (evbase, -1,
        BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
-	 evdns_base * evdns=evdns_base_new(evbase,1);   
+	 
     int rv = bufferevent_socket_connect_hostname
-      (bev_,evdns,AF_INET,downstream->getHostname(),downstream->getDstPort());
-	evdns_base_free(evdns,0);
+      (bev_,client_handler_->get_ev_dns(),AF_INET,downstream->getHostname(),downstream->getDstPort());
+	
     if(rv != 0) {
       bufferevent_free(bev_);
       bev_ = 0;
       return SHRPX_ERR_NETWORK;
     }
-    if(ENABLE_LOG) {
-      DCLOG(INFO, this) << "Connecting to downstream server";
-    }
+
   }
   downstream->set_downstream_connection(this);
   downstream_ = downstream;
@@ -148,41 +149,8 @@ int HttpDownstreamConnection::push_request_headers()
     hdrs += (*i).second;
     hdrs += "\r\n";
   }
-  if(downstream_->get_request_connection_close()) {
-    hdrs += "Connection: close\r\n";
-  }
-  if(get_config()->add_x_forwarded_for) {
-    hdrs += "X-Forwarded-For: ";
-    if(!xff_value.empty()) {
-      hdrs += xff_value;
-      hdrs += ", ";
-    }
-    hdrs += downstream_->get_upstream()->get_client_handler()->get_ipaddr();
-    hdrs += "\r\n";
-  } else if(!xff_value.empty()) {
-    hdrs += "X-Forwarded-For: ";
-    hdrs += xff_value;
-    hdrs += "\r\n";
-  }
-  if(downstream_->get_request_method() != "CONNECT") {
-    hdrs += "X-Forwarded-Proto: ";
-    if(util::istartsWith(downstream_->get_request_path(), "http:")) {
-      hdrs += "http";
-    } else {
-      hdrs += "https";
-    }
-    hdrs += "\r\n";
-  }
-  if(!get_config()->no_via) {
-    hdrs += "Via: ";
-    if(!via_value.empty()) {
-      hdrs += via_value;
-      hdrs += ", ";
-    }
-    hdrs += http::create_via_header_value(downstream_->get_request_major(),
-                                          downstream_->get_request_minor());
-    hdrs += "\r\n";
-  }
+  
+  hdrs += "Connection: close\r\n";  
 
   hdrs += "\r\n";
   if(ENABLE_LOG) {

@@ -393,22 +393,12 @@ void print_help(std::ostream& out)
       << "OPTIONS:\n"
       << "\n"
       << "  Connections:\n"
-      << "    -b, --backend=<HOST,PORT>\n"
-      << "                       Set backend host and port.\n"
-      << "                       Default: '"
-      << get_config()->downstream_host << ","
-      << get_config()->downstream_port << "'\n"
       << "    -f, --frontend=<HOST,PORT>\n"
       << "                       Set frontend host and port.\n"
       << "                       Default: '"
       << get_config()->host << "," << get_config()->port << "'\n"
       << "    --backlog=<NUM>    Set listen backlog size.\n"
       << "                       Default: "
-      << get_config()->backlog << "\n"
-      << "    --backend-ipv4     Resolve backend hostname to IPv4 address\n"
-      << "                       only.\n"
-      << "    --backend-ipv6     Resolve backend hostname to IPv6 address\n"
-      << "                       only.\n"
       << "\n"
       << "  Performance:\n"
       << "    -n, --workers=<CORES>\n"
@@ -523,7 +513,6 @@ int main(int argc, char **argv)
     static option long_options[] = {
       {"daemon", no_argument, 0, 'D' },
       {"log-level", required_argument, 0, 'L' },
-      {"backend", required_argument, 0, 'b' },
       {"spdy-max-concurrent-streams", required_argument, 0, 'c' },
       {"frontend", required_argument, 0, 'f' },
       {"help", no_argument, 0, 'h' },

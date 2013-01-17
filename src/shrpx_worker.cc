@@ -33,7 +33,6 @@
 #include "shrpx_ssl.h"
 #include "shrpx_thread_event_receiver.h"
 #include "shrpx_log.h"
-#include "shrpx_spdy_session.h"
 
 namespace shrpx {
 

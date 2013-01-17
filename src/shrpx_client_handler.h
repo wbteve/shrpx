@@ -63,6 +63,7 @@ public:
   SSL* get_ssl() const;
   void set_spdy_session(SpdySession *spdy);
   SpdySession* get_spdy_session() const;
+  evdns_base * get_ev_dns(){ return this->evdns;}
 private:
   bufferevent *bev_;
   int fd_;
@@ -74,6 +75,7 @@ private:
   // Shared SPDY session for each thread. NULL if not client mode. Not
   // deleted by this object.
   SpdySession *spdy_;
+  evdns_base * evdns;
 };
 
 } // namespace shrpx

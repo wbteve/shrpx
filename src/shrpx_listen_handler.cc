@@ -36,7 +36,6 @@
 #include "shrpx_ssl.h"
 #include "shrpx_worker.h"
 #include "shrpx_config.h"
-#include "shrpx_spdy_session.h"
 
 namespace shrpx {
 
@@ -118,12 +117,6 @@ event_base* ListenHandler::get_evbase() const
   return evbase_;
 }
 
-int ListenHandler::create_spdy_session()
-{
-  int rv;
-  spdy_ = new SpdySession(evbase_, ssl_ctx_);
-  rv = spdy_->init_notification();
-  return rv;
-}
+
 
 } // namespace shrpx

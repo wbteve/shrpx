@@ -26,12 +26,12 @@
 
 #include <unistd.h>
 #include <cerrno>
+#include <event2/dns.h>
 
 #include "shrpx_upstream.h"
 #include "shrpx_spdy_upstream.h"
 #include "shrpx_config.h"
 #include "shrpx_http_downstream_connection.h"
-#include "shrpx_spdy_downstream_connection.h"
 #include "shrpx_accesslog.h"
 
 namespace shrpx {
@@ -136,6 +136,7 @@ ClientHandler::ClientHandler(bufferevent *bev, int fd, SSL *ssl,
   bufferevent_setwatermark(bev_, EV_READ, 0, SHRPX_READ_WARTER_MARK);
   set_upstream_timeouts(&get_config()->upstream_read_timeout,
                         &get_config()->upstream_write_timeout);
+  this->evdns=evdns_base_new(get_evbase(),1);   
   if(ssl_) {
     set_bev_cb(0, upstream_writecb, upstream_eventcb);
   } 
@@ -161,6 +162,7 @@ ClientHandler::~ClientHandler()
       i != dconn_pool_.end(); ++i) {
     delete *i;
   }
+  if(evdns) evdns_base_free(evdns,0);
   if(ENABLE_LOG) {
     CLOG(INFO, this) << "Deleted";
   }

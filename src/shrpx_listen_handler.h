@@ -51,7 +51,6 @@ public:
   int accept_connection(evutil_socket_t fd, sockaddr *addr, int addrlen);
   void create_worker_thread(size_t num);
   event_base* get_evbase() const;
-  int create_spdy_session();
 private:
   event_base *evbase_;
   // In client-mode, this is for backend SPDY connection. Otherwise,

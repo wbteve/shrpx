@@ -81,7 +81,7 @@ public:
   const std::string& get_request_method() const;
   
   void set_request_path(const std::string& path);
-  void set_host_and_port(const char* value);
+  void set_host_and_port(const char* value,const char* scheme);
   
   void append_request_path(const char *data, size_t len);
   const std::string& get_request_path() const;

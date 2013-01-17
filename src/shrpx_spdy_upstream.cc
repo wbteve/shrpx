@@ -215,17 +215,8 @@ void on_ctrl_recv_callback
 		   }
 		}				
 	}
-    if(scheme && path[0] == '/') {
-      std::string reqpath = scheme;
-      reqpath += "://";
-      reqpath += host;
-      reqpath += path;
-      downstream->set_request_path(reqpath);
-    } else {
-      downstream->set_request_path(path);
-    }
-	downstream->set_host_and_port(host);
-    downstream->add_request_header("host", host);
+  
+
 
 
     if(ENABLE_LOG) {
@@ -238,7 +229,16 @@ void on_ctrl_recv_callback
                            << "\n" << ss.str();
     }
 
-    DownstreamConnection *dconn=new HttpDownstreamConnection(upstream->get_client_handler());    
+	downstream->set_request_path(path);
+	downstream->set_host_and_port(host,scheme==NULL?"http":scheme);
+    downstream->add_request_header("host", host);
+    DownstreamConnection *dconn=NULL;
+	if(strcmp(method,"CONNECT")){
+		dconn=new HttpDownstreamConnection(upstream->get_client_handler());    
+	} else{
+	    upstream->rst_stream(downstream, SPDYLAY_INTERNAL_ERROR);		
+		return;
+	}
     int rv = dconn->attach_downstream(downstream);
     if(rv != 0) {
       // If downstream connection fails, issue RST_STREAM.

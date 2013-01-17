@@ -29,7 +29,6 @@
 #include "shrpx_ssl.h"
 #include "shrpx_log.h"
 #include "shrpx_client_handler.h"
-#include "shrpx_spdy_session.h"
 
 namespace shrpx {
 
