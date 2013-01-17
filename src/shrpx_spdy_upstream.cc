@@ -44,16 +44,19 @@ using namespace spdylay;
 
 namespace shrpx {
 
-namespace {
-const size_t SHRPX_SPDY_UPSTREAM_OUTPUT_UPPER_THRES = 64*1024;
-} // namespace
 
-namespace {
-ssize_t send_callback(spdylay_session *session,
+static const size_t SHRPX_SPDY_UPSTREAM_OUTPUT_UPPER_THRES = 64*1024;
+
+
+/**
+ * Callback function invoked when the session wants to send data to the remote peer.
+ * The implementation of this function must send at most len bytes of data stored in data.
+ * It must return the number of bytes sent if it succeeds. If it cannot send any single byte without blocking,
+ * it must return SPDYLAY_ERR_WOULDBLOCK. For other errors, it must return SPDYLAY_ERR_CALLBACK_FAILURE.
+ */
+static ssize_t send_callback(spdylay_session *session,
                       const uint8_t *data, size_t len, int flags,
-                      void *user_data)
-{
-  int rv;
+                      void *user_data) {  
   SpdyUpstream *upstream = reinterpret_cast<SpdyUpstream*>(user_data);
   ClientHandler *handler = upstream->get_client_handler();
   bufferevent *bev = handler->get_bev();
@@ -63,7 +66,7 @@ ssize_t send_callback(spdylay_session *session,
     return SPDYLAY_ERR_WOULDBLOCK;
   }
 
-  rv = evbuffer_add(output, data, len);
+  int rv = evbuffer_add(output, data, len);
   if(rv == -1) {
     ULOG(FATAL, upstream) << "evbuffer_add() failed";
     return SPDYLAY_ERR_CALLBACK_FAILURE;
@@ -71,12 +74,15 @@ ssize_t send_callback(spdylay_session *session,
     return len;
   }
 }
-} // namespace
 
-namespace {
-ssize_t recv_callback(spdylay_session *session,
-                      uint8_t *data, size_t len, int flags, void *user_data)
-{
+/**
+ * Callback function invoked when session wants to receive data from the remote peer¡£
+ * the implementation of this function must read at most len bytes of data and store it in buf. 
+ * It must return the number of bytes written in buf if it succeeds. If it cannot read any single 
+ * byte without blocking, it must return SPDYLAY_ERR_WOULDBLOCK. If it gets EOF before it reads any
+ * single byte, it must return SPDYLAY_ERR_EOF. For other errors, it must return SPDYLAY_ERR_CALLBACK_FAILURE.
+ */
+static ssize_t recv_callback(spdylay_session *session,uint8_t *data, size_t len, int flags, void *user_data){
   SpdyUpstream *upstream = reinterpret_cast<SpdyUpstream*>(user_data);
   ClientHandler *handler = upstream->get_client_handler();
   bufferevent *bev = handler->get_bev();
@@ -90,10 +96,16 @@ ssize_t recv_callback(spdylay_session *session,
     return nread;
   }
 }
-} // namespace
 
-namespace {
-void on_stream_close_callback
+
+/**
+ * Callback function invoked when the stream stream_id is closed. 
+ * The reason of closure is indicated by the status_code. The stream_user_data,
+ * which was specified in spdylay_submit_request() or spdylay_submit_syn_stream(), 
+ * is still available in this function.
+ *
+ */
+static void on_stream_close_callback
 (spdylay_session *session, int32_t stream_id, spdylay_status_code status_code,
  void *user_data)
 {
@@ -136,7 +148,7 @@ void on_stream_close_callback
     }
   }
 }
-} // namespace
+
 
 namespace {
 void on_ctrl_recv_callback

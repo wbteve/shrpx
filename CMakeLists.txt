@@ -6,7 +6,7 @@ find_package (ZLIB)
 ENABLE_TESTING()
 
 
-set(CMAKE_CXX_FLAGS "--std=c++11 -pthread")
+set(CMAKE_CXX_FLAGS "--std=c++11 -pthread -Wall")
 include (CheckIncludeFiles)
 include (CheckIncludeFileCXX)
 include (CheckCXXSourceCompiles)

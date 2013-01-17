@@ -14,7 +14,7 @@ namespace shrpx {
   class SocketDownstreamConnection : public DownstreamConnection {
   public:
     SocketDownstreamConnection(ClientHandler *client_handler);
-    virtual ~SocketDownstreamConnection();
+    virtual ~SocketDownstreamConnection() noexcept;
     virtual int attach_downstream(Downstream *downstream);
     virtual void detach_downstream(Downstream *downstream);
 
